@@ -11,31 +11,51 @@ const PORT = 3103;
 
 const CORS_HEADERS = {
   headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'OPTIONS, POST',
-      'Access-Control-Allow-Headers': 'Content-Type',
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "*",
+    "Access-Control-Allow-Headers": "*",
+    "Access-Control-Allow-Credentials": "true",
+    "Access-Control-Max-Age": "86400",
   },
 };
 
 const server = Bun.serve({
   port: PORT,
-  fetch(request) {
-    // Handle CORS preflight requests
+  hostname: "0.0.0.0",
+  async fetch(request) {
+    // 处理CORS预检请求
     if (request.method === "OPTIONS") {
-      const res = new Response("Departed", CORS_HEADERS);
-      return res;
+      return new Response(null, {
+        status: 204,
+        headers: {
+          ...CORS_HEADERS.headers,
+          "Access-Control-Allow-Methods":
+            request.headers.get("Access-Control-Request-Method") || "*",
+          "Access-Control-Allow-Headers":
+            request.headers.get("Access-Control-Request-Headers") || "*",
+        },
+      });
     }
+
+    // 为所有响应添加CORS头
+    const handleResponse = (response: Response) => {
+      Object.entries(CORS_HEADERS.headers).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+      return response;
+    };
+
     const url = new URL(request.url);
     switch (url.pathname) {
       case "/api/gpt-4-vision":
         console.log("GPT4 Vision Request");
-        return handleVisionRequest(request);
+        return handleResponse(await handleVisionRequest(request));
       case "/api/status":
         console.log("API Status Request");
-        return new Response("Server Up!", { status: 200 });
+        return handleResponse(new Response("Server Up!", { status: 200 }));
       default:
         console.log("Not Found Request");
-        return new Response("Not Found", { status: 404 });
+        return handleResponse(new Response("Not Found", { status: 404 }));
     }
   },
 });
