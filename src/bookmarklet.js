@@ -16,7 +16,18 @@ javascript: (function () {
 
         function simulateTyping(text, index = 0) {
           if (index < text.length) {
-            document.execCommand('insertText', false, text[index]);
+            if (text[index] === '\n') {
+              const event = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                keyCode: 13,
+                which: 13,
+                shiftKey: true,
+                bubbles: true
+              });
+              inputBox.dispatchEvent(event);
+            } else {
+              document.execCommand('insertText', false, text[index]);
+            }
             setTimeout(() => simulateTyping(text, index + 1), 10);
           } else {
             console.log("输入完成");
@@ -47,9 +58,12 @@ javascript: (function () {
   const messages = document.getElementsByClassName("x78zum5 xdt5ytf x1iyjqo2 x2lah0s xl56j7k x121v3j4")[0];
   messages.removeEventListener("DOMNodeInserted", null);
   messages.addEventListener("DOMNodeInserted", async (event) => {    
-    const imgSrc = event?.target?.getElementsByTagName("img")[1]?.src;
-    if (imgSrc) {
-      console.log("send image to server");
+    const imgElement = event?.target?.getElementsByTagName("img")[1];
+    const imgSrc = imgElement?.src;
+    const imgAlt = imgElement?.alt;
+
+    if (imgSrc && imgAlt === "Open photo") {
+      console.log("发现用户上传的图片，正在发送到服务器");
       const res = await fetch("http://localhost:3103/api/gpt-4-vision", {
         method: "POST",
         body: JSON.stringify({ imageUrl: imgSrc }),
@@ -63,6 +77,9 @@ javascript: (function () {
         writeToInputBox(data);
         setTimeout(resolve, 1000);
       });
+    }
+    else {
+      console.log("img alt is:", imgAlt);
     }
   });
   alert("已添加 Messenger 聊天观察器");
