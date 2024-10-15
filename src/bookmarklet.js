@@ -20,13 +20,6 @@ javascript: (function () {
             setTimeout(() => simulateTyping(text, index + 1), 10);
           } else {
             console.log("输入完成");
-            const enterEvent = new KeyboardEvent('keydown', {
-              bubbles: true,
-              cancelable: true,
-              key: 'Enter',
-              keyCode: 13
-            });
-            inputBox.dispatchEvent(enterEvent);
             sendMessage();
           }
         }
@@ -38,12 +31,17 @@ javascript: (function () {
     }
   }
   function sendMessage() {
-    const sendButton = document.querySelector('div[aria-label="Press Enter to send"]');
-    if (sendButton) {
-      sendButton.click();
-      console.log("消息已发送");
+    const inputBox = document.querySelector('div[contenteditable="true"][role="textbox"]');
+    if (inputBox && inputBox.textContent.trim() !== '') {
+      const sendButton = document.querySelector('div[aria-label="Press Enter to send"]');
+      if (sendButton) {
+        sendButton.click();
+        console.log("消息已发送");
+      } else {
+        console.log("未找到发送按钮");
+      }
     } else {
-      console.log("未找到发送按钮");
+      console.log("消息内容为空,未发送");
     }
   }
   const messages = document.getElementsByClassName("x78zum5 xdt5ytf x1iyjqo2 x2lah0s xl56j7k x121v3j4")[0];
