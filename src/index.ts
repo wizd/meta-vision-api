@@ -1,9 +1,12 @@
 import { readFile, writeFile } from "fs/promises";
+import { extractFacesAction, analyzeAction } from "./face_actions";
 
 // Use this pre-prompt to customize what you want GPT4-Vision todo
 const PRE_PROMPT = `What is in this image?`;
 const GPT_VISION_MODEL = process.env.GPT_VISION_MODEL || "gpt-4-vision-preview";
-const COMPLETIONS_ENDPOINT = process.env.COMPLETIONS_ENDPOINT || "https://api.openai.com/v1/chat/completions";
+const COMPLETIONS_ENDPOINT =
+  process.env.COMPLETIONS_ENDPOINT ||
+  "https://api.openai.com/v1/chat/completions";
 const SAVED_DATA = "./public/data.json";
 
 //Facebook Messenger whitelists this localhost port so is the only one you can currently use
@@ -61,20 +64,100 @@ const server = Bun.serve({
 });
 
 async function handleVisionRequest(request: Request) {
-  if (request.method !== "POST" || request.headers.get("Content-Type") !== "application/json") {
-    console.log("Invalid request", request.method, request.headers.get("Content-Type"));
+  if (
+    request.method !== "POST" ||
+    request.headers.get("Content-Type") !== "application/json"
+  ) {
+    console.log(
+      "Invalid request",
+      request.method,
+      request.headers.get("Content-Type")
+    );
     return new Response("Invalid request", { status: 400 });
   }
 
   try {
     const imageUrl = (await request.json()).imageUrl;
-    const responseContent = await analyzeImage(imageUrl);
+    const responseContent = await checkFaceFromImage(imageUrl);
     await saveData(imageUrl, responseContent);
-    return new Response(JSON.stringify(responseContent), { status: 200, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify(responseContent), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error(error);
     return new Response("Internal Server Error", { status: 500 });
   }
+}
+
+async function checkFaceFromImage(imageUrl: string) {
+  try {
+    // 提取人脸
+    const extractResult = await extractFacesAction(imageUrl, {
+      faceDetector: "retinaface",
+      antiSpoofing: false,
+    });
+
+    if (extractResult.results.length === 0) {
+      return "这张图片中没有检测到人脸。";
+    }
+
+    // 分析每个人脸
+    const analyzePromises = extractResult.results.map(() =>
+      analyzeAction(imageUrl, {
+        faceDetector: "retinaface",
+        antiSpoofing: false,
+      })
+    );
+
+    const analyzeResults = await Promise.all(analyzePromises);
+
+    // 汇总结果
+    let summary = `在这张图片中检测到${extractResult.results.length}张人脸。\n`;
+
+    analyzeResults.forEach((result, index) => {
+      const face = result[0]; // 假设每次分析只返回一个人脸结果
+      summary += `人脸 ${index + 1}:\n`;
+      summary += `- 年龄: 约${Math.round(face.age)}岁\n`;
+      summary += `- 性别: ${
+        face.dominant_gender === "Man" ? "男性" : "女性"
+      }\n`;
+      summary += `- 主要情绪: ${translateEmotion(face.dominant_emotion)}\n`;
+      summary += `- 主要种族: ${translateRace(face.dominant_race)}\n\n`;
+    });
+
+    return summary.trim();
+  } catch (error) {
+    console.error("分析图片时出错:", error);
+    return "分析图片时发生错误,请稍后再试。";
+  }
+}
+
+// 辅助函数:翻译情绪
+function translateEmotion(emotion: string): string {
+  const emotionMap: { [key: string]: string } = {
+    sad: "悲伤",
+    angry: "愤怒",
+    surprise: "惊讶",
+    fear: "恐惧",
+    happy: "高兴",
+    disgust: "厌恶",
+    neutral: "中性",
+  };
+  return emotionMap[emotion] || emotion;
+}
+
+// 辅助函数:翻译种族
+function translateRace(race: string): string {
+  const raceMap: { [key: string]: string } = {
+    indian: "印度人",
+    asian: "亚洲人",
+    "latino hispanic": "拉丁裔/西班牙裔",
+    black: "黑人",
+    "middle eastern": "中东人",
+    white: "白人",
+  };
+  return raceMap[race] || race;
 }
 
 async function analyzeImage(imageUrl: string) {
