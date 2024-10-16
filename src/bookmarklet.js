@@ -55,15 +55,9 @@ javascript: (function () {
       console.log("消息内容为空,未发送");
     }
   }
-  const messages = document.getElementsByClassName("x78zum5 xdt5ytf x1iyjqo2 x2lah0s xl56j7k x121v3j4")[0];
-  messages.removeEventListener("DOMNodeInserted", null);
-  messages.addEventListener("DOMNodeInserted", async (event) => {    
-    const imgElement = event?.target?.getElementsByTagName("img")[1];
-    const imgSrc = imgElement?.src;
-    const imgAlt = imgElement?.alt;
-
-    if (imgSrc && imgAlt === "Open photo") {
-      console.log("发现用户上传的图片，正在发送到服务器");
+  async function handleNewImage(imgSrc) {
+    console.log("发现用户上传的图片，正在发送到服务器");
+    try {
       const res = await fetch("http://localhost:3103/api/gpt-4-vision", {
         method: "POST",
         body: JSON.stringify({ imageUrl: imgSrc }),
@@ -77,10 +71,28 @@ javascript: (function () {
         writeToInputBox(data);
         setTimeout(resolve, 1000);
       });
+    } catch (error) {
+      console.error("处理图片时出错:", error);
     }
-    else {
-      console.log("img alt is:", imgAlt);
+  }
+  const messages = document.getElementsByClassName("x78zum5 xdt5ytf x1iyjqo2 x2lah0s xl56j7k x121v3j4")[0];
+  const observer = new MutationObserver((mutations) => {
+    for (let mutation of mutations) {
+      if (mutation.type === 'childList') {
+        for (let node of mutation.addedNodes) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const imgElement = node.querySelector('img[src^="data:image"]');
+            if (imgElement) {
+              handleNewImage(imgElement.src);
+              break;
+            }
+          }
+        }
+      }
     }
   });
+  const config = { childList: true, subtree: true };
+  observer.observe(messages, config);
+
   alert("已添加 Messenger 聊天观察器");
 })();
