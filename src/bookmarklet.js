@@ -42,7 +42,16 @@
           setTimeout(() => simulateTyping(text, index + 1), 10);
         } else {
           console.log("输入完成");
-          sendMessage();
+          //sendMessage();
+          // 发送回车键事件
+          const enterEvent = new KeyboardEvent('keydown', {
+            key: 'Enter',
+            keyCode: 13,
+            which: 13,
+            bubbles: true
+          });
+          inputBox.dispatchEvent(enterEvent);
+          console.log("消息已发送");
         }
       }
 
@@ -69,7 +78,7 @@
   async function handleNewImage(imgSrc) {
     console.log("发现用户上传的图片，正在发送到服务器");
     try {
-      const res = await fetch("http://localhost:3103/api/gpt-4-vision", {
+      const res = await GM_xmlhttpRequest("http://192.168.3.56:3103/api/gpt-4-vision", {
         method: "POST",
         body: JSON.stringify({ imageUrl: imgSrc }),
         headers: {
@@ -90,13 +99,31 @@
   const processedImages = new Set();
 
   function initObserver() {
-    const messages = document.getElementsByClassName("x78zum5 xdt5ytf x1iyjqo2 x2lah0s xl56j7k x121v3j4")[0];
-    if (!messages) {
-      console.log("未找到消息容器，1秒后重试");
-      setTimeout(initObserver, 1000);
-      return;
-    }
+    // 检查消息容器是否存在
+    const checkMessagesContainer = () => {
+      const messages = document.getElementsByClassName("x78zum5 xdt5ytf x1iyjqo2 x2lah0s xl56j7k x121v3j4")[0];
+      if (!messages) {
+        console.log("未找到消息容器,1秒后重试");
+        setTimeout(checkMessagesContainer, 1000);
+        return;
+      }
 
+      // 检查是否有足够的消息加载
+      // const messageCount = messages.children.length;
+      // if (messageCount < 10) { // 假设至少需要10条消息
+      //   console.log(`消息数量不足 (${messageCount}), 1秒后重试`);
+      //   setTimeout(checkMessagesContainer, 1000);
+      //   return;
+      // }
+
+      console.log("消息容器已找到,且有足够的消息加载,开始观察");
+      setupObserver(messages);
+    };
+
+    checkMessagesContainer();
+  }
+
+  function setupObserver(messages) {
     const observer = new MutationObserver((mutations) => {
       for (let mutation of mutations) {
         if (mutation.type === 'childList') {
@@ -123,5 +150,6 @@
   }
 
   // 页面加载完成后初始化观察器
-  window.addEventListener('load', initObserver);
+  console.log("页面加载完成,等待15秒后开始初始化观察器");
+  setTimeout(initObserver, 15000);
 })();
