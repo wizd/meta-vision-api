@@ -4,7 +4,16 @@
 // @version      0.1
 // @description  处理 Messenger 中上传的图片并发送到服务器
 // @match        https://www.messenger.com/*
-// @grant        none
+// @grant        GM_xmlhttpRequest
+// @grant GM_setValue
+// @grant GM_getValue
+// @grant GM.setValue
+// @grant GM.getValue
+// @grant GM_setClipboard
+// @grant unsafeWindow
+// @grant window.close
+// @grant window.focus
+// @grant window.onurlchange
 // ==/UserScript==
 
 (function () {
@@ -78,7 +87,7 @@
   async function handleNewImage(imgSrc) {
     console.log("发现用户上传的图片，正在发送到服务器");
     try {
-      const res = await GM_xmlhttpRequest("http://192.168.3.56:3103/api/gpt-4-vision", {
+      const res = await fetch("http://localhost:3103/api/gpt-4-vision", {
         method: "POST",
         body: JSON.stringify({ imageUrl: imgSrc }),
         headers: {
