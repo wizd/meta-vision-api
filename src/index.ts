@@ -99,7 +99,7 @@ async function checkFaceFromImage(imageUrl: string) {
     });
 
     if (extractResult.results.length === 0) {
-      return "这张图片中没有检测到人脸。";
+      return "No faces detected in this image.";
     }
 
     // 分析每个人脸
@@ -113,36 +113,36 @@ async function checkFaceFromImage(imageUrl: string) {
     const analyzeResults = await Promise.all(analyzePromises);
 
     // 汇总结果
-    let summary = `在这张图片中检测到${extractResult.results.length}张人脸。\n`;
+    let summary = `Detected ${extractResult.results.length} faces in this image.\n`;
 
     analyzeResults.forEach((result, index) => {
       const face = result[0]; // 假设每次分析只返回一个人脸结果
-      summary += `人脸 ${index + 1}:\n`;
-      summary += `- 年龄: 约${Math.round(face.age)}岁\n`;
-      summary += `- 性别: ${
-        face.dominant_gender === "Man" ? "男性" : "女性"
+      summary += `Face ${index + 1}:\n`;
+      summary += `- Age: Approximately ${Math.round(face.age)} years old\n`;
+      summary += `- Gender: ${
+        face.dominant_gender === "Man" ? "Male" : "Female"
       }\n`;
-      summary += `- 主要情绪: ${translateEmotion(face.dominant_emotion)}\n`;
-      summary += `- 主要种族: ${translateRace(face.dominant_race)}\n\n`;
+      summary += `- Main emotion: ${translateEmotion(face.dominant_emotion)}\n`;
+      summary += `- Main race: ${translateRace(face.dominant_race)}\n\n`;
     });
 
     return summary.trim();
   } catch (error) {
     console.error("分析图片时出错:", error);
-    return "分析图片时发生错误,请稍后再试。";
+    return "Error analyzing image, please try again later.";
   }
 }
 
 // 辅助函数:翻译情绪
 function translateEmotion(emotion: string): string {
   const emotionMap: { [key: string]: string } = {
-    sad: "悲伤",
-    angry: "愤怒",
-    surprise: "惊讶",
-    fear: "恐惧",
-    happy: "高兴",
-    disgust: "厌恶",
-    neutral: "中性",
+    sad: "Sad",
+    angry: "Angry",
+    surprise: "Surprise",
+    fear: "Fear",
+    happy: "Happy",
+    disgust: "Disgust",
+    neutral: "Neutral",
   };
   return emotionMap[emotion] || emotion;
 }
@@ -150,12 +150,12 @@ function translateEmotion(emotion: string): string {
 // 辅助函数:翻译种族
 function translateRace(race: string): string {
   const raceMap: { [key: string]: string } = {
-    indian: "印度人",
-    asian: "亚洲人",
-    "latino hispanic": "拉丁裔/西班牙裔",
-    black: "黑人",
-    "middle eastern": "中东人",
-    white: "白人",
+    indian: "Indian",
+    asian: "Asian",
+    "latino hispanic": "Latino/Hispanic",
+    black: "Black",
+    "middle eastern": "Middle Eastern",
+    white: "White",
   };
   return raceMap[race] || race;
 }
