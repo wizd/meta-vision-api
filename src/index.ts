@@ -102,21 +102,16 @@ async function checkFaceFromImage(imageUrl: string) {
       return "No faces detected in this image.";
     }
 
-    // 分析每个人脸
-    const analyzePromises = extractResult.results.map(() =>
-      analyzeAction(imageUrl, {
-        faceDetector: "retinaface",
-        antiSpoofing: false,
-      })
-    );
-
-    const analyzeResults = await Promise.all(analyzePromises);
+    const analyzeResults = await analyzeAction(imageUrl, {
+      faceDetector: "retinaface",
+      antiSpoofing: false,
+    });
 
     // 汇总结果
     let summary = `Detected ${extractResult.results.length} faces in this image.\n`;
 
     analyzeResults.forEach((result, index) => {
-      const face = result[0]; // 假设每次分析只返回一个人脸结果
+      const face = result; // 假设每次分析只返回一个人脸结果
       summary += `Face ${index + 1}:\n`;
       summary += `- Age: Approximately ${Math.round(face.age)} years old\n`;
       summary += `- Gender: ${
